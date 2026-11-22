@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Cache-Control" content="no-store">
+  <title>Bekräfta konto · Tunny</title>
+  <style>
+    :root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif}
+    *{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#252a23;color:#e9e6d9;padding:24px}
+    main{width:min(100%,420px)}header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:38px}
+    .brand{font-weight:800;font-size:32px;letter-spacing:6px}.small{font-size:11px;letter-spacing:2px;color:#a6ad97}
+    section{background:#30382d;border:1px solid #505940;padding:26px}
+    .eyebrow{font-size:11px;letter-spacing:2px;color:#b7c5a0;font-weight:700}
+    h1{font-size:24px;line-height:1.25;margin:14px 0}p{color:#d2d5c7;line-height:1.6}
+    button{width:100%;min-height:52px;background:#b7c5a0;color:#252a23;font-weight:800;font-size:15px;border:0;margin-top:16px;cursor:pointer}
+    button:disabled{opacity:.55;cursor:not-allowed}footer{color:#a6ad97;font-size:10px;letter-spacing:1.2px;margin-top:28px}
+  </style>
+</head>
+<body>
+<main>
+  <header><span class="brand">TUNNY</span><span class="small">01 / KONTO</span></header>
+  <section>
+    <span class="eyebrow">E-POSTBEKRÄFTELSE</span>
+    <h1 id="heading">Kontrollerar länken…</h1>
+    <p id="message">Vänta ett ögonblick.</p>
+    <button id="open" type="button" hidden>Öppna Tunny</button>
+  </section>
+  <footer>TUNNY / PERSONLIG TERMALSKRIVARE</footer>
+</main>
+<script>
+(function () {
+  'use strict';
+  const heading = document.getElementById('heading');
+  const message = document.getElementById('message');
+  const button = document.getElementById('open');
+  const query = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  // Never forward arbitrary URLs or write authentication tokens to logs or analytics.
+  const allowed = ['access_token','refresh_token','expires_in','expires_at','token_type','type','error','error_code','error_description','code','token_hash'];
+  const params = new URLSearchParams();
+  for (const key of allowed) {
+    const value = hash.get(key) ?? query.get(key);
+    if (value !== null) params.set(key, value);
+  }
+  // Remove credentials from browser history immediately.
+  history.replaceState(null, '', window.location.pathname);
+  const error = params.get('error_description') || params.get('error');
+  if (error) {
+    heading.textContent = 'Länken kunde inte användas';
+    message.textContent = 'Bekräftelselänken kan ha gått ut. Prova att logga in i Tunny eller begär ett nytt mejl.';
+    return;
+  }
+  const hasSession = params.has('access_token') && params.has('refresh_token');
+  const hasCode = params.has('code');
+  const hasHash = params.has('token_hash');
+  if (!hasSession && !hasCode && !hasHash) {
+    heading.textContent = 'Ingen inloggningslänk hittades';
+    message.textContent = 'Öppna Tunny och logga in med din e-postadress och ditt lösenord.';
+    button.hidden = false;
+    button.addEventListener('click', () => { window.location.href = 'tunny://auth/callback'; });
+    return;
+  }
+  heading.textContent = 'Din e-postadress är bekräftad';
+  message.textContent = 'Tryck på knappen för att öppna Tunny och slutföra inloggningen.';
+  button.hidden = false;
+  button.addEventListener('click', () => {
+    const destination = 'tunny://auth/callback' + (hasSession ? '#' : '?') + params.toString();
+    window.location.href = destination;
+  });
+})();
+</script>
+</body>
+</html>
